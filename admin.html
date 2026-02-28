@@ -791,21 +791,33 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+// ── SUPABASE CONFIG ──
+const SUPABASE_URL = 'https://rwdzqhawujrqdmsdaovi.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Qj7kJDVvwIyjGodAH77ATw_BPiDx8rh';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ── STATE ──
 let feeds = JSON.parse(localStorage.getItem('pb_feeds') || '[]');
 let fetchedHeadlines = JSON.parse(localStorage.getItem('pb_fetched') || '[]');
 // Clear any stale selected IDs that may reference old broken IDs
 let selectedIds = new Set();
 localStorage.setItem('pb_selected', '[]');
-let published = JSON.parse(localStorage.getItem('pb_published') || '[]');
+// published is now fetched from Supabase; keep local copy for filter logic
+let published = [];
 let currentFilter = 'all';
 let editingId = null;
 let editStarValue = 3;
 
 // ── INIT ──
 renderFeeds();
-renderHeadlines();
+// Load published from Supabase so filter tabs work correctly
+db.from('headlines').select('id').then(({ data }) => {
+  published = data || [];
+  renderHeadlines();
+}).catch(() => { renderHeadlines(); });
 updateSelectedCount();
 
 // ── FEEDS ──
@@ -995,7 +1007,7 @@ async function refreshAll() {
 
 // ── FILTER TABS ──
 function buildFilterTabs() {
-  const publishedIds = new Set((JSON.parse(localStorage.getItem('pb_published') || '[]')).map(p => p.id));
+  const publishedIds = new Set(published.map(p => p.id));
   const unpublished = fetchedHeadlines.filter(h => !publishedIds.has(h.id));
   const feedsWithItems = [...new Set(unpublished.map(h => h.feedId))];
   const container = document.getElementById('filter-tabs');
@@ -1019,7 +1031,7 @@ function filterFeed(feedId, btn) {
 // ── RENDER HEADLINES ──
 function renderHeadlines() {
   const container = document.getElementById('headlines-list');
-  const publishedIds = new Set((JSON.parse(localStorage.getItem('pb_published') || '[]')).map(p => p.id));
+  const publishedIds = new Set(published.map(p => p.id));
   const pool = fetchedHeadlines.filter(h => !publishedIds.has(h.id));
   const items = currentFilter === 'all' ? pool : pool.filter(h => h.feedId === currentFilter);
 
@@ -1097,7 +1109,7 @@ function deselectAll() {
 }
 
 function selectAll() {
-  const publishedIds = new Set((JSON.parse(localStorage.getItem('pb_published') || '[]')).map(p => p.id));
+  const publishedIds = new Set(published.map(p => p.id));
   const pool = fetchedHeadlines.filter(h => !publishedIds.has(h.id));
   const visible = currentFilter === 'all' ? pool : pool.filter(h => h.feedId === currentFilter);
   visible.forEach(h => selectedIds.add(h.id));
@@ -1158,39 +1170,47 @@ function bulkAssign(cat) {
 }
 
 // ── PUBLISH ──
-function publishSelected() {
+async function publishSelected() {
   const toPublish = fetchedHeadlines.filter(h => selectedIds.has(h.id));
   if (!toPublish.length) return showToast('לא נבחרו כותרות', 'error');
+
+  const btn = document.getElementById('publish-btn');
+  btn.disabled = true;
+  btn.textContent = 'מפרסם...';
 
   const now = new Date().toISOString();
   const newItems = toPublish.map(h => ({
     id: h.id,
     title: h.title,
     source: h.editSource || h.feedName,
-    category: h.editCategory,
-    image: h.editImage || h.image || '',
+    category: h.editCategory || null,
+    image: h.editImage || h.image || null,
     stars: h.editStars || 3,
-    link: h.link,
-    publishedAt: now
+    link: h.link || null,
+    published_at: now,
+    is_live: true,
+    votes: 0
   }));
 
-  // Merge into active published list (dedup by id)
-  const existingIds = new Set(published.map(p => p.id));
-  published = [...published, ...newItems.filter(p => !existingIds.has(p.id))];
-  localStorage.setItem('pb_published', JSON.stringify(published));
+  try {
+    const { error } = await db.from('headlines').upsert(newItems, { onConflict: 'id' });
+    if (error) throw error;
 
-  // Append to all-time history (dedup by id)
-  const history = JSON.parse(localStorage.getItem('pb_history') || '[]');
-  const historyIds = new Set(history.map(p => p.id));
-  const toAdd = newItems.filter(p => !historyIds.has(p.id));
-  localStorage.setItem('pb_history', JSON.stringify([...toAdd, ...history]));
+    // Update local published list for filter logic
+    const existingIds = new Set(published.map(p => p.id));
+    published = [...published, ...newItems.filter(p => !existingIds.has(p.id))];
 
-  deselectAll();
-
-  const count = newItems.length;
-  showToast(`✓ פורסמו ${count} כותרות!`, 'success');
-  // Brief delay so the toast is readable before navigating
-  setTimeout(() => { window.location.href = 'published.html'; }, 900);
+    deselectAll();
+    const count = newItems.length;
+    showToast(`✓ פורסמו ${count} כותרות!`, 'success');
+    setTimeout(() => { window.location.href = 'published.html'; }, 900);
+  } catch(err) {
+    showToast('שגיאה בפרסום: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'פרסם נבחרים';
+  }
 }
 
 // ── EDIT MODAL ──

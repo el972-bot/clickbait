@@ -446,20 +446,37 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+// ── SUPABASE CONFIG ──
+const SUPABASE_URL = 'https://rwdzqhawujrqdmsdaovi.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Qj7kJDVvwIyjGodAH77ATw_BPiDx8rh';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ── STATE ──
-let history = JSON.parse(localStorage.getItem('pb_history') || '[]');
-const livePublished = () => new Set((JSON.parse(localStorage.getItem('pb_published') || '[]')).map(p => p.id));
+let history = [];
 
 // ── INIT ──
-renderStats();
-renderHistory();
+loadAll();
+
+async function loadAll() {
+  try {
+    const { data, error } = await db.from('headlines').select('*').order('published_at', { ascending: false });
+    if (error) throw error;
+    history = data || [];
+  } catch(e) {
+    history = [];
+    showToast('שגיאה בטעינה: ' + e.message, 'error');
+  }
+  renderStats();
+  renderHistory();
+}
 
 // ── STATS ──
 function renderStats() {
-  const liveIds = livePublished();
   const total = history.length;
-  const live = history.filter(p => liveIds.has(p.id)).length;
+  const live = history.filter(p => p.is_live).length;
   document.getElementById('stats-row').innerHTML = `
     <div class="stat-chip"><span class="num">${total}</span> סה"כ</div>
     <div class="stat-chip"><span class="num" style="color:var(--green)">${live}</span> פעילים</div>
@@ -472,15 +489,13 @@ function renderHistory() {
   const query = document.getElementById('search-input').value.trim().toLowerCase();
   const catFilter = document.getElementById('cat-filter').value;
   const statusFilter = document.getElementById('status-filter').value;
-  const liveIds = livePublished();
 
   let items = history.filter(p => {
     if (query && !p.title.toLowerCase().includes(query) && !(p.source||'').toLowerCase().includes(query)) return false;
     if (catFilter === '__none__' && p.category) return false;
     if (catFilter && catFilter !== '__none__' && p.category !== catFilter) return false;
-    const isLive = liveIds.has(p.id);
-    if (statusFilter === 'live' && !isLive) return false;
-    if (statusFilter === 'unpublished' && isLive) return false;
+    if (statusFilter === 'live' && !p.is_live) return false;
+    if (statusFilter === 'unpublished' && p.is_live) return false;
     return true;
   });
 
@@ -503,7 +518,7 @@ function renderHistory() {
   }
 
   container.innerHTML = items.map((p, i) => {
-    const isLive = liveIds.has(p.id);
+    const isLive = p.is_live;
     const catKey = (p.category || '').replace(/\s+/g, '-');
     const catBadge = p.category
       ? `<span class="h-cat h-cat-${catKey}">${p.category}</span>`
@@ -511,8 +526,8 @@ function renderHistory() {
     const stars = [1,2,3,4,5].map(n =>
       `<span class="h-star ${n <= (p.stars||3) ? 'lit' : ''}">★</span>`
     ).join('');
-    const dateStr = p.publishedAt
-      ? new Date(p.publishedAt).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })
+    const dateStr = p.published_at
+      ? new Date(p.published_at).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })
       : '';
     const liveIndicator = isLive
       ? `<span class="h-live-dot"></span><span class="h-live-label">פעיל</span>`
@@ -535,6 +550,7 @@ function renderHistory() {
             ${dateStr ? `<span>·</span><span>${dateStr}</span>` : ''}
             <span>·</span>
             <div class="h-stars">${stars}</div>
+            ${p.votes ? `<span>·</span><span>👎 ${p.votes}</span>` : ''}
           </div>
         </div>
         <div class="h-actions">
@@ -547,64 +563,70 @@ function renderHistory() {
       </div>`;
   }).join('');
 
-  // Safe delete event delegation
   container.querySelectorAll('.icon-btn.del[data-del-id]').forEach(btn => {
     btn.addEventListener('click', () => deleteFromHistory(btn.dataset.delId));
   });
 }
 
 // ── TOGGLE LIVE ──
-function toggleLive(id) {
-  let pub = JSON.parse(localStorage.getItem('pb_published') || '[]');
-  const isLive = pub.some(p => p.id === id);
-  if (isLive) {
-    pub = pub.filter(p => p.id !== id);
-    showToast('⊘ הוסר מהאתר', 'success');
-  } else {
-    const item = history.find(p => p.id === id);
-    if (item) pub.push(item);
-    showToast('↺ הוחזר לאתר', 'success');
+async function toggleLive(id) {
+  const item = history.find(p => p.id === id);
+  if (!item) return;
+  const newLive = !item.is_live;
+  try {
+    const { error } = await db.from('headlines').update({ is_live: newLive }).eq('id', id);
+    if (error) throw error;
+    item.is_live = newLive;
+    showToast(newLive ? '↺ הוחזר לאתר' : '⊘ הוסר מהאתר', 'success');
+    renderStats();
+    renderHistory();
+  } catch(err) {
+    showToast('שגיאה: ' + err.message, 'error');
   }
-  localStorage.setItem('pb_published', JSON.stringify(pub));
-  renderStats();
-  renderHistory();
 }
 
 // ── DELETE FROM HISTORY ──
-function deleteFromHistory(id) {
-  // Also remove from active published
-  let pub = JSON.parse(localStorage.getItem('pb_published') || '[]');
-  pub = pub.filter(p => p.id !== id);
-  localStorage.setItem('pb_published', JSON.stringify(pub));
-
-  history = history.filter(p => p.id !== id);
-  localStorage.setItem('pb_history', JSON.stringify(history));
-
-  // Animate row out
-  const row = document.querySelector(`.history-row[data-id="${id}"]`);
-  if (row) {
-    row.style.transition = 'opacity 0.2s, transform 0.2s';
-    row.style.opacity = '0';
-    row.style.transform = 'translateX(20px)';
-    setTimeout(() => { renderStats(); renderHistory(); }, 220);
-  } else {
-    renderStats();
-    renderHistory();
+async function deleteFromHistory(id) {
+  try {
+    const { error } = await db.from('headlines').delete().eq('id', id);
+    if (error) throw error;
+    const row = document.querySelector(`.history-row[data-id="${id}"]`);
+    if (row) {
+      row.style.transition = 'opacity 0.2s, transform 0.2s';
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(20px)';
+      setTimeout(() => {
+        history = history.filter(p => p.id !== id);
+        renderStats();
+        renderHistory();
+      }, 220);
+    } else {
+      history = history.filter(p => p.id !== id);
+      renderStats();
+      renderHistory();
+    }
+    showToast('נמחק מההיסטוריה', 'success');
+  } catch(err) {
+    showToast('שגיאה: ' + err.message, 'error');
   }
-  showToast('נמחק מההיסטוריה', 'success');
 }
 
 // ── CLEAR ALL HISTORY ──
-function clearHistory() {
+async function clearHistory() {
   if (!history.length) return showToast('ההיסטוריה כבר ריקה', 'error');
   const confirmed = confirm(`האם למחוק את כל ${history.length} הכותרות מההיסטוריה לצמיתות?\nהאתר הציבורי גם יתרוקן.`);
   if (!confirmed) return;
-  history = [];
-  localStorage.setItem('pb_history', '[]');
-  localStorage.setItem('pb_published', '[]');
-  renderStats();
-  renderHistory();
-  showToast('🗑 ההיסטוריה נמחקה', 'success');
+  try {
+    // Delete all rows — Supabase requires a filter; use neq on a dummy value
+    const { error } = await db.from('headlines').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (error) throw error;
+    history = [];
+    renderStats();
+    renderHistory();
+    showToast('🗑 ההיסטוריה נמחקה', 'success');
+  } catch(err) {
+    showToast('שגיאה: ' + err.message, 'error');
+  }
 }
 
 // ── TOAST ──

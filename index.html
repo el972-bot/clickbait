@@ -38,7 +38,6 @@
       opacity: 0.4;
     }
 
-    /* ── HEADER ── */
     header {
       border-bottom: 1px solid var(--border);
       padding: 0 2rem;
@@ -96,7 +95,6 @@
     }
     .header-date { font-size: 0.7rem; color: var(--text-dim); font-weight: 300; }
 
-    /* ── MAIN ── */
     main {
       max-width: 1200px;
       margin: 0 auto;
@@ -126,13 +124,11 @@
       background: var(--accent);
     }
 
-    /* ── GRID ── */
     .grid { columns: 4; column-gap: 1rem; }
     @media (max-width: 1100px) { .grid { columns: 3; } }
     @media (max-width: 720px)  { .grid { columns: 2; } }
     @media (max-width: 480px)  { .grid { columns: 1; } }
 
-    /* ── CARD ── */
     .card {
       break-inside: avoid;
       margin-bottom: 1rem;
@@ -214,7 +210,6 @@
       border-top: 1px solid var(--border);
     }
 
-    /* ── THUMBS DOWN ── */
     .downvote-btn {
       display: flex;
       align-items: center;
@@ -230,7 +225,7 @@
       transition: border-color 0.18s, color 0.18s, background 0.18s;
       line-height: 1;
       position: relative;
-      z-index: 2; /* sit above the <a> card so clicks register */
+      z-index: 2;
     }
     .downvote-btn:hover {
       border-color: var(--red);
@@ -242,13 +237,8 @@
       color: var(--red);
       background: rgba(232,64,64,0.1);
     }
-    .thumb-icon {
-      font-size: 0.8rem;
-      display: inline-block;
-    }
-    .downvote-btn.voted .thumb-icon {
-      animation: thumbBounce 0.35s ease;
-    }
+    .thumb-icon { font-size: 0.8rem; display: inline-block; }
+    .downvote-btn.voted .thumb-icon { animation: thumbBounce 0.35s ease; }
     @keyframes thumbBounce {
       0%   { transform: scale(1)   translateY(0); }
       40%  { transform: scale(1.4) translateY(3px); }
@@ -276,7 +266,21 @@
     .arrow { transition: transform 0.2s; display: inline-block; }
     .card:hover .arrow { transform: translateX(-3px); }
 
-    /* ── EMPTY ── */
+    .loading-screen {
+      text-align: center;
+      padding: 6rem 2rem;
+      color: var(--text-dim);
+    }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     .empty-public {
       text-align: center;
       padding: 6rem 2rem;
@@ -286,7 +290,6 @@
     .empty-public p { font-size: 0.9rem; line-height: 1.7; }
     .empty-public a { color: var(--accent); text-decoration: none; }
 
-    /* ── FOOTER ── */
     footer {
       border-top: 1px solid var(--border);
       padding: 1.5rem 2rem;
@@ -313,7 +316,12 @@
 
 <main>
   <div class="section-label"><span>כותרות היום</span></div>
-  <div class="grid" id="cards-grid"></div>
+  <div class="grid" id="cards-grid">
+    <div class="loading-screen" style="grid-column:1/-1">
+      <div class="spinner"></div>
+      <div>טוען כותרות...</div>
+    </div>
+  </div>
 </main>
 
 <footer>
@@ -323,79 +331,111 @@
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+  // ── CONFIG ──
+  const SUPABASE_URL = 'https://rwdzqhawujrqdmsdaovi.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Qj7kJDVvwIyjGodAH77ATw_BPiDx8rh';
+
   // ── DATE ──
   const d = new Date();
   document.getElementById('today-date').textContent =
     d.toLocaleDateString('he-IL', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
-  // ── VOTES ──
-  // votes: { [id]: number }  — persisted vote counts
-  // voted: { [id]: true }    — which IDs this browser already voted on
-  const votes = JSON.parse(localStorage.getItem('pb_votes') || '{}');
+  // ── VOTED (per browser, stays local) ──
   const voted = JSON.parse(localStorage.getItem('pb_voted') || '{}');
 
-  function downvote(e, id) {
+  // ── SUPABASE SDK ──
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  async function downvote(e, id) {
     e.preventDefault();
     e.stopPropagation();
-    if (voted[id]) return; // one vote per browser
-    votes[id] = (votes[id] || 0) + 1;
+    if (voted[id]) return;
+
     voted[id] = true;
-    localStorage.setItem('pb_votes', JSON.stringify(votes));
     localStorage.setItem('pb_voted', JSON.stringify(voted));
 
     const btn = e.currentTarget;
     btn.classList.add('voted');
-    const countEl = btn.querySelector('.vote-count');
-    countEl.textContent = votes[id];
-    // re-trigger thumb animation by cloning the icon node
+
+    try {
+      const { data: rows } = await db.from('headlines').select('votes').eq('id', id).single();
+      const current = rows?.votes || 0;
+      await db.from('headlines').update({ votes: current + 1 }).eq('id', id);
+      const countEl = btn.querySelector('.vote-count');
+      countEl.textContent = current + 1;
+    } catch(err) {
+      console.error('Vote error:', err);
+    }
+
     const icon = btn.querySelector('.thumb-icon');
     icon.style.animation = 'none';
-    icon.offsetHeight; // reflow
+    icon.offsetHeight;
     icon.style.animation = '';
   }
 
-  // ── RENDER ──
-  const published = JSON.parse(localStorage.getItem('pb_published') || '[]');
-  const grid = document.getElementById('cards-grid');
+  async function loadAndRender() {
+    const grid = document.getElementById('cards-grid');
+    try {
+      const { data: published, error } = await db
+        .from('headlines')
+        .select('*')
+        .eq('is_live', true)
+        .order('published_at', { ascending: false });
 
-  if (!published.length) {
-    grid.innerHTML = `
-      <div class="empty-public" style="grid-column:1/-1">
-        <div class="big">📭</div>
-        <p>עדיין אין כותרות מפורסמות.<br/>
-        <a href="admin.html">עבור לדף הניהול</a> כדי למשוך כותרות ולפרסם אותן.</p>
-      </div>`;
-  } else {
-    grid.innerHTML = published.map((p, i) => {
-      const featured = i === 0 ? 'featured' : '';
-      const catClass = p.category ? 'cat-' + p.category.replace(/\s+/g, '-') : '';
-      const voteCount = votes[p.id] || 0;
-      const hasVoted = !!voted[p.id];
+      if (error) throw error;
 
-      return `
-        <a class="card ${featured} ${catClass}" href="${p.link || '#'}" target="_blank" rel="noopener">
-          <div class="card-body">
-            <div class="card-source-row">
-              <div class="card-source">${p.source || ''}</div>
-              ${p.category ? `<div class="card-category">${p.category}</div>` : ''}
+      if (!published || !published.length) {
+        grid.innerHTML = `
+          <div class="empty-public" style="grid-column:1/-1">
+            <div class="big">📭</div>
+            <p>עדיין אין כותרות מפורסמות.<br/>
+            <a href="admin.html">עבור לדף הניהול</a> כדי למשוך כותרות ולפרסם אותן.</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = published.map((p, i) => {
+        const featured = i === 0 ? 'featured' : '';
+        const catClass = p.category ? 'cat-' + p.category.replace(/\s+/g, '-') : '';
+        const voteCount = p.votes || 0;
+        const hasVoted = !!voted[p.id];
+
+        return `
+          <a class="card ${featured} ${catClass}" href="${p.link || '#'}" target="_blank" rel="noopener">
+            <div class="card-body">
+              <div class="card-source-row">
+                <div class="card-source">${p.source || ''}</div>
+                ${p.category ? `<div class="card-category">${p.category}</div>` : ''}
+              </div>
+              <div class="card-headline">${p.title}</div>
+              <div class="card-footer">
+                <button class="downvote-btn ${hasVoted ? 'voted' : ''}" data-id="${p.id}">
+                  <span class="thumb-icon">👎</span>
+                  <span class="vote-count">${voteCount > 0 ? voteCount : ''}</span>
+                </button>
+                <span class="card-link">קרא עוד <span class="arrow">←</span></span>
+              </div>
             </div>
-            <div class="card-headline">${p.title}</div>
-            <div class="card-footer">
-              <button class="downvote-btn ${hasVoted ? 'voted' : ''}" data-id="${p.id}">
-                <span class="thumb-icon">👎</span>
-                <span class="vote-count">${voteCount > 0 ? voteCount : ''}</span>
-              </button>
-              <span class="card-link">קרא עוד <span class="arrow">←</span></span>
-            </div>
-          </div>
-        </a>`;
-    }).join('');
+          </a>`;
+      }).join('');
 
-    grid.querySelectorAll('.downvote-btn').forEach(btn => {
-      btn.addEventListener('click', e => downvote(e, btn.dataset.id));
-    });
+      grid.querySelectorAll('.downvote-btn').forEach(btn => {
+        btn.addEventListener('click', e => downvote(e, btn.dataset.id));
+      });
+
+    } catch(err) {
+      grid.innerHTML = `
+        <div class="empty-public" style="grid-column:1/-1">
+          <div class="big">⚠️</div>
+          <p>שגיאה בטעינת כותרות.<br/><small style="color:#555">${err.message}</small></p>
+        </div>`;
+    }
   }
+
+  loadAndRender();
 </script>
 </body>
 </html>
