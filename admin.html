@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>לוח הפיתיון — ניהול</title>
+  <link href="https://fonts.googleapis.com/css2?family=Secular+One&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0C0C0C;
+      --surface: #141414;
+      --card: #1A1A1A;
+      --card-hover: #1F1F1F;
+      --border: #272727;
+      --border-focus: #3A3A3A;
+      --text: #F0EDE8;
+      --text-muted: #888;
+      --text-dim: #444;
+      --accent: #F5A623;
+      --accent-dim: rgba(245,166,35,0.12);
+      --accent-border: rgba(245,166,35,0.3);
+      --green: #2ECC71;
+      --green-dim: rgba(46,204,113,0.12);
+      --red: #E84040;
+      --red-dim: rgba(232,64,64,0.12);
+      --blue: #4A9EFF;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rubik', sans-serif;
+      direction: rtl;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    .header-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-title {
+      font-family: 'Secular One', sans-serif;
+      font-weight: 400;
+      font-size: 1.3rem;
+      color: var(--text);
+    }
+    .brand-title span { color: var(--accent); }
+    .admin-badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      color: var(--accent);
+      padding: 3px 8px;
+      border-radius: 2px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn {
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border-focus);
+      color: var(--text-muted);
+    }
+    .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+    .btn-accent {
+      background: var(--accent);
+      color: #0C0C0C;
+    }
+    .btn-accent:hover { background: #ffb733; }
+    .btn-accent:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-danger {
+      background: var(--red-dim);
+      border: 1px solid rgba(232,64,64,0.2);
+      color: var(--red);
+    }
+    .btn-danger:hover { background: rgba(232,64,64,0.2); }
+    .btn-success {
+      background: var(--green-dim);
+      border: 1px solid rgba(46,204,113,0.2);
+      color: var(--green);
+    }
+    .btn-success:hover { background: rgba(46,204,113,0.25); }
+
+    /* ── LAYOUT ── */
+    .layout {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    /* ── PANELS ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .panel-body { padding: 1.25rem; }
+
+    /* ── FEEDS PANEL ── */
+    .feed-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
+    .input-group { display: flex; flex-direction: column; gap: 5px; }
+    .input-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    input[type="text"], input[type="url"] {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.85rem;
+      padding: 9px 12px;
+      width: 100%;
+      transition: border-color 0.15s;
+      direction: ltr;
+    }
+    input[type="text"] { direction: rtl; }
+    input:focus { outline: none; border-color: var(--accent); }
+    input::placeholder { color: var(--text-dim); }
+
+    .feed-list { display: flex; flex-direction: column; gap: 8px; }
+    .feed-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: border-color 0.15s;
+    }
+    .feed-item:hover { border-color: var(--border-focus); }
+    .feed-item.active { border-color: var(--accent-border); }
+    .feed-info { flex: 1; min-width: 0; }
+    .feed-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .feed-url {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      direction: ltr;
+      text-align: right;
+      margin-top: 2px;
+    }
+    .feed-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 3px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .icon-btn.del:hover { border-color: var(--red); color: var(--red); }
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+    }
+    .empty-state .icon { font-size: 1.5rem; margin-bottom: 8px; }
+
+    /* ── HEADLINES PANEL ── */
+    .headlines-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .count-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      color: var(--accent);
+      padding: 3px 8px;
+      border-radius: 2px;
+      margin-right: auto;
+    }
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .filter-tab {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+      font-family: 'Rubik', sans-serif;
+    }
+    .filter-tab:hover { border-color: var(--border-focus); color: var(--text); }
+    .filter-tab.active {
+      background: var(--accent-dim);
+      border-color: var(--accent-border);
+      color: var(--accent);
+    }
+
+    /* ── RSS RESULTS ── */
+    .headlines-list {
+      max-height: 70vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .headline-row {
+      display: grid;
+      grid-template-columns: 36px 70px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 1.25rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s, opacity 0.2s, transform 0.2s;
+    }
+    .headline-row:last-child { border-bottom: none; }
+    .headline-row:hover { background: var(--card); }
+    .headline-row.selected { background: rgba(46,204,113,0.04); }
+
+    .hl-checkbox {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border-focus);
+      border-radius: 3px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .hl-checkbox:checked {
+      background: var(--green);
+      border-color: var(--green);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%230C0C0C' d='M2 6l3 3 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .hl-thumb {
+      width: 70px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 2px;
+      filter: saturate(0.4);
+      transition: filter 0.2s;
+      background: var(--card);
+      flex-shrink: 0;
+    }
+    .hl-thumb:hover { filter: saturate(1); }
+    .hl-thumb-placeholder {
+      width: 70px;
+      height: 44px;
+      background: var(--card);
+      border-radius: 2px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .hl-content { min-width: 0; }
+    .hl-source {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .hl-title {
+      font-family: 'Secular One', sans-serif;
+      font-size: 0.93rem;
+      font-weight: 400;
+      line-height: 1.35;
+      color: var(--text);
+    }
+    .hl-date {
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+    .hl-edit-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 3px;
+      padding: 5px 10px;
+      font-size: 0.68rem;
+      font-family: 'Rubik', sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .hl-edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .hl-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    .hl-dismiss-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-dim);
+      border-radius: 3px;
+      width: 28px;
+      height: 28px;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .hl-dismiss-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+    /* ── EDIT MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border-focus);
+      border-radius: 6px;
+      width: 100%;
+      max-width: 560px;
+      transform: translateY(10px);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-header {
+      padding: 1.1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0 4px;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* Image upload area */
+    .image-upload-area {
+      border: 2px dashed var(--border-focus);
+      border-radius: 3px;
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      position: relative;
+    }
+    .image-upload-area:hover { border-color: var(--accent); }
+    .image-upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .image-preview {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 2px;
+      margin-bottom: 8px;
+      display: none;
+    }
+    .image-preview.visible { display: block; }
+    .upload-hint {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+    .upload-hint strong { color: var(--accent); }
+
+    /* Stars selector */
+    .stars-selector { display: flex; gap: 6px; }
+    .star-btn {
+      font-size: 1.2rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: color 0.1s, transform 0.1s;
+      padding: 0 2px;
+    }
+    .star-btn.lit { color: var(--accent); }
+    .star-btn:hover { transform: scale(1.2); }
+
+    /* ── PUBLISHED SECTION ── */
+    .published-panel { margin-top: 1.5rem; }
+    .published-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .published-row {
+      display: grid;
+      grid-template-columns: 60px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .published-row:last-child { border-bottom: none; }
+    .pub-thumb {
+      width: 60px;
+      height: 38px;
+      object-fit: cover;
+      border-radius: 2px;
+    }
+    .pub-title {
+      font-family: 'Secular One', sans-serif;
+      font-size: 0.86rem;
+      font-weight: 400;
+      line-height: 1.3;
+    }
+    .pub-meta {
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+    .pub-actions { display: flex; gap: 6px; }
+
+    /* Category picker */
+    .cat-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+    .cat-pill {
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border-focus);
+      background: var(--card);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cat-pill:hover { border-color: var(--accent); color: var(--accent); }
+    .cat-pill.active[data-cat="פחד"]        { background: rgba(255,51,51,0.15);  border-color: #FF3333; color: #FF3333; }
+    .cat-pill.active[data-cat="סקס"]        { background: rgba(255,105,180,0.15); border-color: #FF69B4; color: #FF69B4; }
+    .cat-pill.active[data-cat="סנסציוני"]   { background: rgba(255,215,0,0.12);  border-color: #FFD700; color: #FFD700; }
+    .cat-pill.active[data-cat="כעס"]          { background: rgba(255,107,0,0.12);  border-color: #FF6B00; color: #FF6B00; }
+    .cat-pill.cat-none.active               { background: var(--border); border-color: var(--text-dim); color: var(--text-muted); }
+
+    /* Category badges in headline rows */
+    .cat-badge { font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; border: 1px solid; }
+    .cat-badge-פחד        { color: #FF3333; border-color: rgba(255,51,51,0.35); background: rgba(255,51,51,0.08); }
+    .cat-badge-סקס        { color: #FF69B4; border-color: rgba(255,105,180,0.35); background: rgba(255,105,180,0.08); }
+    .cat-badge-סנסציוני   { color: #FFD700; border-color: rgba(255,215,0,0.35); background: rgba(255,215,0,0.08); }
+    .cat-badge-כעס        { color: #FF6B00; border-color: rgba(255,107,0,0.35); background: rgba(255,107,0,0.08); }
+    /* ── BULK ASSIGN BAR ── */
+    .bulk-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 1.25rem;
+      background: rgba(245,166,35,0.06);
+      border-bottom: 1px solid rgba(245,166,35,0.15);
+      flex-wrap: wrap;
+    }
+    .bulk-bar.visible { display: flex; }
+    .bulk-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      white-space: nowrap;
+      margin-left: 4px;
+    }
+    .bulk-cat-btn {
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border-focus);
+      background: var(--card);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.12s;
+      white-space: nowrap;
+    }
+    .bulk-cat-btn:hover                          { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
+    .bulk-cat-btn[data-cat="פחד"]:hover        { background: rgba(255,51,51,0.15);   border-color: #FF3333; color: #FF3333; }
+    .bulk-cat-btn[data-cat="סקס"]:hover        { background: rgba(255,105,180,0.15); border-color: #FF69B4; color: #FF69B4; }
+    .bulk-cat-btn[data-cat="סנסציוני"]:hover   { background: rgba(255,215,0,0.12);   border-color: #FFD700; color: #FFD700; }
+    .bulk-cat-btn[data-cat="כעס"]:hover         { background: rgba(255,107,0,0.12);   border-color: #FF6B00; color: #FF6B00; }
+    .bulk-clear:hover { background: rgba(255,255,255,0.06) !important; border-color: var(--text-dim) !important; color: var(--text-muted) !important; }
+    .bulk-dismiss:hover { background: var(--red-dim) !important; border-color: var(--red) !important; color: var(--red) !important; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--card);
+      border: 1px solid var(--border-focus);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      z-index: 999;
+      opacity: 0;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.success { border-color: rgba(46,204,113,0.4); color: var(--green); }
+    .toast.error { border-color: rgba(232,64,64,0.4); color: var(--red); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-title">לוח ה<span>פיתיון</span></div>
+      <div class="admin-badge">ניהול</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" onclick="window.open('index.html','_blank')">← צפה באתר</button>
+      <a class="btn btn-ghost" href="published.html">📋 היסטוריית פרסום</a>
+      <button class="btn btn-accent" id="publish-btn" onclick="publishSelected()">פרסם נבחרים</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: Feeds Panel -->
+  <div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">פידים RSS</div>
+        <span id="feed-count" class="count-badge">0</span>
+      </div>
+      <div class="panel-body">
+        <div class="feed-form">
+          <div class="input-group">
+            <label class="input-label">שם המקור</label>
+            <input type="text" id="feed-name-input" placeholder="למשל: ynet בריאות" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">כתובת RSS</label>
+            <input type="url" id="feed-url-input" placeholder="https://..." />
+          </div>
+          <button class="btn btn-accent" onclick="addFeed()">+ הוסף פיד</button>
+        </div>
+        <div class="feed-list" id="feed-list">
+          <div class="empty-state">
+            <div class="icon">📡</div>
+            <div>עדיין אין פידים. הוסף את הראשון!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Headlines Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">כותרות ממוצאות</div>
+      <div class="headlines-toolbar">
+        <span id="hl-count" class="count-badge">0 נבחרו</span>
+        <button class="btn btn-ghost" id="select-all-btn" onclick="selectAll()">✓ בחר הכל</button>
+        <button class="btn btn-ghost" id="deselect-btn" onclick="deselectAll()" style="display:none">✕ בטל בחירה</button>
+        <button class="btn btn-ghost" onclick="refreshAll()" id="refresh-btn">↻ רענן</button>
+      </div>
+    </div>
+    <div class="filter-tabs" id="filter-tabs">
+      <button class="filter-tab active" onclick="filterFeed('all', this)">הכל</button>
+    </div>
+    <div class="bulk-bar" id="bulk-bar">
+      <span class="bulk-label">שייך נבחרים ל:</span>
+      <button class="bulk-cat-btn" data-cat="פחד"       onclick="bulkAssign('פחד')">😱 פחד</button>
+      <button class="bulk-cat-btn" data-cat="סקס"       onclick="bulkAssign('סקס')">💋 סקס</button>
+      <button class="bulk-cat-btn" data-cat="סנסציוני"  onclick="bulkAssign('סנסציוני')">⚡ סנסציוני</button>
+      <button class="bulk-cat-btn" data-cat="כעס" onclick="bulkAssign('כעס')">😡 כעס</button>
+      <button class="bulk-cat-btn bulk-clear"            onclick="bulkAssign('')">✕ נקה</button>
+      <button class="bulk-cat-btn bulk-dismiss"           onclick="dismissSelected()">🗑 הסתר נבחרים</button>
+    </div>
+    <div class="headlines-list" id="headlines-list">
+      <div class="empty-state" style="padding: 4rem;">
+        <div class="icon">🗞️</div>
+        <div>הוסף פיד RSS ולחץ <strong>רענן</strong> כדי למשוך כותרות</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">עריכת כותרת</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="input-group">
+        <label class="input-label">שם מקור</label>
+        <input type="text" id="edit-source" />
+      </div>
+      <div class="input-group">
+        <label class="input-label">קטגוריה</label>
+        <div class="cat-picker" id="cat-picker">
+          <button type="button" class="cat-pill" data-cat="פחד" onclick="selectCategory('פחד', this)">😱 פחד</button>
+          <button type="button" class="cat-pill" data-cat="סקס" onclick="selectCategory('סקס', this)">💋 סקס</button>
+          <button type="button" class="cat-pill" data-cat="סנסציוני" onclick="selectCategory('סנסציוני', this)">⚡ סנסציוני</button>
+          <button type="button" class="cat-pill" data-cat="כעס" onclick="selectCategory('כעס', this)">😡 כעס</button>
+          <button type="button" class="cat-pill cat-none" data-cat="" onclick="selectCategory('', this)">ללא</button>
+        </div>
+        <input type="hidden" id="edit-category" />
+      </div>
+      <div class="input-group">
+        <label class="input-label">ציון פיתיון</label>
+        <div class="stars-selector" id="edit-stars">
+          <button class="star-btn" onclick="setStar(1)">★</button>
+          <button class="star-btn" onclick="setStar(2)">★</button>
+          <button class="star-btn" onclick="setStar(3)">★</button>
+          <button class="star-btn" onclick="setStar(4)">★</button>
+          <button class="star-btn" onclick="setStar(5)">★</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">תמונה</label>
+        <div class="image-upload-area" id="img-upload-area">
+          <img class="image-preview" id="img-preview" src="" alt="" />
+          <input type="file" id="img-file-input" accept="image/*" onchange="handleImageUpload(event)" />
+          <div class="upload-hint">
+            <strong>לחץ לבחור תמונה</strong> או גרור לכאן<br/>
+            <span id="img-current-url" style="color: var(--text-dim); font-size:0.65rem; margin-top:4px; display:block; direction:ltr;"></span>
+          </div>
+        </div>
+        <input type="url" id="edit-image-url" placeholder="או הדבק URL של תמונה..." style="margin-top:6px;" oninput="previewFromUrl()" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button class="btn btn-accent" onclick="saveEdit()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let feeds = JSON.parse(localStorage.getItem('pb_feeds') || '[]');
+let fetchedHeadlines = JSON.parse(localStorage.getItem('pb_fetched') || '[]');
+// Clear any stale selected IDs that may reference old broken IDs
+let selectedIds = new Set();
+localStorage.setItem('pb_selected', '[]');
+let published = JSON.parse(localStorage.getItem('pb_published') || '[]');
+let currentFilter = 'all';
+let editingId = null;
+let editStarValue = 3;
+
+// ── INIT ──
+renderFeeds();
+renderHeadlines();
+updateSelectedCount();
+
+// ── FEEDS ──
+function addFeed() {
+  const name = document.getElementById('feed-name-input').value.trim();
+  const url = document.getElementById('feed-url-input').value.trim();
+  if (!name || !url) return showToast('נא למלא שם וכתובת', 'error');
+  if (!url.startsWith('http')) return showToast('כתובת URL לא תקינה', 'error');
+  const id = Date.now().toString();
+  feeds.push({ id, name, url });
+  saveFeeds();
+  document.getElementById('feed-name-input').value = '';
+  document.getElementById('feed-url-input').value = '';
+  renderFeeds();
+  showToast(`פיד "${name}" נוסף`, 'success');
+  fetchFeed(feeds[feeds.length - 1]);
+}
+
+function deleteFeed(id) {
+  feeds = feeds.filter(f => f.id !== id);
+  fetchedHeadlines = fetchedHeadlines.filter(h => h.feedId !== id);
+  saveFeeds();
+  localStorage.setItem('pb_fetched', JSON.stringify(fetchedHeadlines));
+  renderFeeds();
+  renderHeadlines();
+  buildFilterTabs();
+}
+
+function saveFeeds() {
+  localStorage.setItem('pb_feeds', JSON.stringify(feeds));
+  renderFeeds();
+}
+
+function renderFeeds() {
+  const el = document.getElementById('feed-list');
+  document.getElementById('feed-count').textContent = feeds.length;
+  if (!feeds.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">📡</div><div>עדיין אין פידים. הוסף את הראשון!</div></div>`;
+    return;
+  }
+  el.innerHTML = feeds.map(f => `
+    <div class="feed-item" id="feed-${f.id}">
+      <div class="feed-info">
+        <div class="feed-name">${f.name}</div>
+        <div class="feed-url">${f.url}</div>
+      </div>
+      <div class="feed-actions">
+        <button class="icon-btn" onclick="fetchFeed(feeds.find(x=>x.id==='${f.id}'))" title="רענן פיד">↻</button>
+        <button class="icon-btn del" onclick="deleteFeed('${f.id}')" title="מחק פיד">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── FETCH RSS ──
+async function fetchFeed(feed) {
+  if (!feed) return;
+  const el = document.getElementById(`feed-${feed.id}`);
+  if (el) el.classList.add('active');
+  showLoading(true);
+
+  const proxies = [
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+
+  let lastError = '';
+  let succeeded = false;
+
+  for (let i = 0; i < proxies.length; i++) {
+    try {
+      const proxyUrl = proxies[i](feed.url);
+      showErrorInPanel(feed.id, `מנסה proxy ${i+1}/${proxies.length}...`, 'info');
+
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status} מה-proxy`);
+
+      let text = '';
+      if (i === 0) {
+        // allorigins wraps in JSON
+        const data = await res.json();
+        if (!data.contents) throw new Error('ה-proxy החזיר תוכן ריק');
+        text = data.contents;
+      } else {
+        text = await res.text();
+      }
+
+      if (!text || text.trim().length < 50) throw new Error('התוכן שהתקבל ריק או קצר מדי');
+
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, 'text/xml');
+
+      // Check for XML parse error
+      const parseErr = xml.querySelector('parsererror');
+      if (parseErr) throw new Error(`שגיאת XML: הפיד לא נראה כמו RSS תקין. בדוק שהכתובת מצביעה על קובץ RSS/XML`);
+
+      const items = Array.from(xml.querySelectorAll('item'));
+      if (!items.length) throw new Error('לא נמצאו פריטים ב-RSS. ייתכן שהכתובת אינה פיד RSS');
+
+      // Remove old items from this feed
+      fetchedHeadlines = fetchedHeadlines.filter(h => h.feedId !== feed.id);
+
+      items.slice(0, 30).forEach(item => {
+        const title = item.querySelector('title')?.textContent?.trim() || '';
+        const link = item.querySelector('link')?.textContent?.trim() || item.querySelector('link')?.getAttribute('href') || '';
+        const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
+        let image = '';
+        const enclosure = item.querySelector('enclosure[type^="image"]');
+        if (enclosure) image = enclosure.getAttribute('url') || '';
+        if (!image) {
+          const media = item.querySelector('thumbnail') || item.querySelector('content');
+          if (media) image = media.getAttribute('url') || '';
+        }
+        if (!image) {
+          const desc = item.querySelector('description')?.textContent || '';
+          const imgMatch = desc.match(/src=["']([^"']+\.(jpg|jpeg|png|webp))/i);
+          if (imgMatch) image = imgMatch[1];
+        }
+
+        const raw = (link || title) + title;
+        let hash = 0;
+        for (let ci = 0; ci < raw.length; ci++) hash = (Math.imul(31, hash) + raw.charCodeAt(ci)) | 0;
+        const id = 'h' + Math.abs(hash).toString(36) + fetchedHeadlines.length.toString(36);
+        fetchedHeadlines.push({
+          id, feedId: feed.id, feedName: feed.name,
+          title, link,
+          pubDate: pubDate ? new Date(pubDate).toLocaleDateString('he-IL') : '',
+          image,
+          editTitle: title, editSource: feed.name,
+          editCategory: '', editImage: image, editStars: 3
+        });
+      });
+
+      localStorage.setItem('pb_fetched', JSON.stringify(fetchedHeadlines));
+      buildFilterTabs();
+      renderHeadlines();
+      clearErrorInPanel(feed.id);
+      showToast(`✓ נמשכו ${items.length} כותרות מ-${feed.name}`, 'success');
+      succeeded = true;
+      break;
+
+    } catch(e) {
+      lastError = e.message || 'שגיאה לא ידועה';
+      if (i < proxies.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+  }
+
+  if (!succeeded) {
+    const msg = `נכשל: ${lastError}`;
+    showErrorInPanel(feed.id, msg, 'error');
+    showToast(`שגיאה ב-${feed.name}`, 'error');
+  }
+
+  showLoading(false);
+  if (el) el.classList.remove('active');
+}
+
+function showErrorInPanel(feedId, msg, type) {
+  let box = document.getElementById(`feed-err-${feedId}`);
+  if (!box) {
+    box = document.createElement('div');
+    box.id = `feed-err-${feedId}`;
+    box.style.cssText = `font-size:0.7rem;padding:6px 10px;border-radius:3px;margin-top:6px;line-height:1.4;direction:rtl;`;
+    const feedEl = document.getElementById(`feed-${feedId}`);
+    if (feedEl) feedEl.after(box);
+  }
+  const colors = {
+    error: 'background:rgba(232,64,64,0.1);border:1px solid rgba(232,64,64,0.25);color:#e84040',
+    info: 'background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);color:#aaa'
+  };
+  box.style.cssText += colors[type] || colors.info;
+  box.textContent = msg;
+}
+
+function clearErrorInPanel(feedId) {
+  document.getElementById(`feed-err-${feedId}`)?.remove();
+}
+
+async function refreshAll() {
+  if (!feeds.length) return showToast('אין פידים להרענן', 'error');
+  document.getElementById('refresh-btn').textContent = '↻ מרענן...';
+  for (const feed of feeds) await fetchFeed(feed);
+  document.getElementById('refresh-btn').textContent = '↻ רענן';
+}
+
+// ── FILTER TABS ──
+function buildFilterTabs() {
+  const publishedIds = new Set((JSON.parse(localStorage.getItem('pb_published') || '[]')).map(p => p.id));
+  const unpublished = fetchedHeadlines.filter(h => !publishedIds.has(h.id));
+  const feedsWithItems = [...new Set(unpublished.map(h => h.feedId))];
+  const container = document.getElementById('filter-tabs');
+  container.innerHTML = `<button class="filter-tab ${currentFilter==='all'?'active':''}" onclick="filterFeed('all', this)">הכל (${unpublished.length})</button>`;
+  feedsWithItems.forEach(fid => {
+    const feed = feeds.find(f => f.id === fid);
+    if (!feed) return;
+    const count = unpublished.filter(h => h.feedId === fid).length;
+    const isActive = currentFilter === fid ? 'active' : '';
+    container.innerHTML += `<button class="filter-tab ${isActive}" onclick="filterFeed('${fid}', this)">${feed.name} (${count})</button>`;
+  });
+}
+
+function filterFeed(feedId, btn) {
+  currentFilter = feedId;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderHeadlines();
+}
+
+// ── RENDER HEADLINES ──
+function renderHeadlines() {
+  const container = document.getElementById('headlines-list');
+  const publishedIds = new Set((JSON.parse(localStorage.getItem('pb_published') || '[]')).map(p => p.id));
+  const pool = fetchedHeadlines.filter(h => !publishedIds.has(h.id));
+  const items = currentFilter === 'all' ? pool : pool.filter(h => h.feedId === currentFilter);
+
+  if (!items.length) {
+    container.innerHTML = `<div class="empty-state" style="padding:4rem"><div class="icon">🗞️</div><div>הוסף פיד RSS ולחץ <strong>רענן</strong></div></div>`;
+    return;
+  }
+
+  container.innerHTML = items.map(h => {
+    const checked = selectedIds.has(h.id);
+    const img = h.editImage || h.image;
+    const thumbHtml = img
+      ? `<img class="hl-thumb" src="${img}" alt="" onerror="this.style.display='none'" />`
+      : `<div class="hl-thumb-placeholder">🖼️</div>`;
+    const catBadge = h.editCategory
+      ? `<span class="cat-badge cat-badge-${h.editCategory.replace(/\s+/g, '-')}">${h.editCategory}</span> `
+      : '';
+
+    return `
+      <div class="headline-row ${checked ? 'selected' : ''}" data-id="${h.id}">
+        <input type="checkbox" class="hl-checkbox" ${checked ? 'checked' : ''} onchange="toggleSelect(this)" />
+        ${thumbHtml}
+        <div class="hl-content">
+          <div class="hl-source">${h.editSource || h.feedName}</div>
+          <div class="hl-title">${h.title}</div>
+          <div class="hl-date">${catBadge}${h.pubDate}</div>
+        </div>
+        <div class="hl-row-actions">
+          <button class="hl-edit-btn" onclick="openEdit(this.closest('.headline-row').dataset.id)">עריכה ✎</button>
+          <button class="hl-dismiss-btn" onclick="dismissHeadline(this.closest('.headline-row').dataset.id)" title="הסתר כותרת">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── SELECT / DESELECT ──
+function toggleSelect(checkbox) {
+  const row = checkbox.closest('.headline-row');
+  const id = row.dataset.id;
+  if (checkbox.checked) {
+    selectedIds.add(id);
+    row.classList.add('selected');
+  } else {
+    selectedIds.delete(id);
+    row.classList.remove('selected');
+  }
+  localStorage.setItem('pb_selected', JSON.stringify([...selectedIds]));
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  document.getElementById('hl-count').textContent = `${selectedIds.size} נבחרו`;
+  const bar = document.getElementById('bulk-bar');
+  const deselectBtn = document.getElementById('deselect-btn');
+  const selectAllBtn = document.getElementById('select-all-btn');
+  if (selectedIds.size > 0) {
+    bar.classList.add('visible');
+    deselectBtn.style.display = '';
+    if (selectAllBtn) selectAllBtn.style.display = 'none';
+  } else {
+    bar.classList.remove('visible');
+    deselectBtn.style.display = 'none';
+    if (selectAllBtn) selectAllBtn.style.display = '';
+  }
+}
+
+function deselectAll() {
+  selectedIds.clear();
+  localStorage.setItem('pb_selected', '[]');
+  updateSelectedCount();
+  // uncheck all visible checkboxes
+  document.querySelectorAll('.hl-checkbox').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.headline-row').forEach(row => row.classList.remove('selected'));
+}
+
+function selectAll() {
+  const publishedIds = new Set((JSON.parse(localStorage.getItem('pb_published') || '[]')).map(p => p.id));
+  const pool = fetchedHeadlines.filter(h => !publishedIds.has(h.id));
+  const visible = currentFilter === 'all' ? pool : pool.filter(h => h.feedId === currentFilter);
+  visible.forEach(h => selectedIds.add(h.id));
+  localStorage.setItem('pb_selected', JSON.stringify([...selectedIds]));
+  updateSelectedCount();
+  document.querySelectorAll('.hl-checkbox').forEach(cb => { cb.checked = true; });
+  document.querySelectorAll('.headline-row').forEach(row => row.classList.add('selected'));
+}
+
+function dismissHeadline(id) {
+  // Remove from fetched list entirely
+  fetchedHeadlines = fetchedHeadlines.filter(h => h.id !== id);
+  selectedIds.delete(id);
+  localStorage.setItem('pb_fetched', JSON.stringify(fetchedHeadlines));
+  localStorage.setItem('pb_selected', JSON.stringify([...selectedIds]));
+  updateSelectedCount();
+  buildFilterTabs();
+  // Animate row out then re-render
+  const row = document.querySelector(`.headline-row[data-id="${id}"]`);
+  if (row) {
+    row.style.transition = 'opacity 0.2s, transform 0.2s';
+    row.style.opacity = '0';
+    row.style.transform = 'translateX(20px)';
+    setTimeout(() => renderHeadlines(), 220);
+  } else {
+    renderHeadlines();
+  }
+}
+
+function dismissSelected() {
+  const count = selectedIds.size;
+  if (!count) return showToast('לא נבחרו כותרות', 'error');
+  fetchedHeadlines = fetchedHeadlines.filter(h => !selectedIds.has(h.id));
+  selectedIds.clear();
+  localStorage.setItem('pb_fetched', JSON.stringify(fetchedHeadlines));
+  localStorage.setItem('pb_selected', '[]');
+  updateSelectedCount();
+  buildFilterTabs();
+  renderHeadlines();
+  showToast(`🗑 ${count} כותרות הוסתרו`, 'success');
+}
+
+function bulkAssign(cat) {
+  const idxMap = {};
+  fetchedHeadlines.forEach((h, i) => { idxMap[h.id] = i; });
+  let count = 0;
+  selectedIds.forEach(id => {
+    const idx = idxMap[id];
+    if (idx !== undefined) { fetchedHeadlines[idx].editCategory = cat; count++; }
+  });
+  localStorage.setItem('pb_fetched', JSON.stringify(fetchedHeadlines));
+  selectedIds.clear();
+  localStorage.setItem('pb_selected', '[]');
+  updateSelectedCount();
+  renderHeadlines();
+  const label = cat ? `"${cat}"` : 'ללא קטגוריה';
+  showToast(`✓ ${count} כותרות שויכו ל${label}`, 'success');
+}
+
+// ── PUBLISH ──
+function publishSelected() {
+  const toPublish = fetchedHeadlines.filter(h => selectedIds.has(h.id));
+  if (!toPublish.length) return showToast('לא נבחרו כותרות', 'error');
+
+  const now = new Date().toISOString();
+  const newItems = toPublish.map(h => ({
+    id: h.id,
+    title: h.title,
+    source: h.editSource || h.feedName,
+    category: h.editCategory,
+    image: h.editImage || h.image || '',
+    stars: h.editStars || 3,
+    link: h.link,
+    publishedAt: now
+  }));
+
+  // Merge into active published list (dedup by id)
+  const existingIds = new Set(published.map(p => p.id));
+  published = [...published, ...newItems.filter(p => !existingIds.has(p.id))];
+  localStorage.setItem('pb_published', JSON.stringify(published));
+
+  // Append to all-time history (dedup by id)
+  const history = JSON.parse(localStorage.getItem('pb_history') || '[]');
+  const historyIds = new Set(history.map(p => p.id));
+  const toAdd = newItems.filter(p => !historyIds.has(p.id));
+  localStorage.setItem('pb_history', JSON.stringify([...toAdd, ...history]));
+
+  deselectAll();
+
+  const count = newItems.length;
+  showToast(`✓ פורסמו ${count} כותרות!`, 'success');
+  // Brief delay so the toast is readable before navigating
+  setTimeout(() => { window.location.href = 'published.html'; }, 900);
+}
+
+// ── EDIT MODAL ──
+function openEdit(id) {
+  editingId = id;
+  const h = fetchedHeadlines.find(x => x.id === id);
+  if (!h) return;
+  document.getElementById('edit-source').value = h.editSource || h.feedName;
+  document.getElementById('edit-category').value = h.editCategory || '';
+  // restore pill state
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  const activePill = document.querySelector(`.cat-pill[data-cat="${h.editCategory || ''}"]`);
+  if (activePill) activePill.classList.add('active');
+  document.getElementById('edit-image-url').value = h.editImage || h.image || '';
+  editStarValue = h.editStars || 3;
+  renderStars();
+
+  const preview = document.getElementById('img-preview');
+  const imgSrc = h.editImage || h.image;
+  if (imgSrc) {
+    preview.src = imgSrc;
+    preview.classList.add('visible');
+  } else {
+    preview.classList.remove('visible');
+  }
+  document.getElementById('img-current-url').textContent = imgSrc ? imgSrc.substring(0, 50) + '...' : '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingId = null;
+}
+
+function saveEdit() {
+  if (!editingId) return;
+  const idx = fetchedHeadlines.findIndex(x => x.id === editingId);
+  if (idx === -1) return;
+  const imageUrl = document.getElementById('edit-image-url').value.trim()
+    || fetchedHeadlines[idx].editImage
+    || fetchedHeadlines[idx].image;
+
+  fetchedHeadlines[idx].editSource = document.getElementById('edit-source').value.trim();
+  fetchedHeadlines[idx].editCategory = document.getElementById('edit-category').value.trim();
+  fetchedHeadlines[idx].editImage = imageUrl;
+  fetchedHeadlines[idx].editStars = editStarValue;
+  localStorage.setItem('pb_fetched', JSON.stringify(fetchedHeadlines));
+  renderHeadlines();
+  closeModal();
+  showToast('✓ נשמר', 'success');
+}
+
+function selectCategory(cat, btn) {
+  document.getElementById('edit-category').value = cat;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function setStar(n) {
+  editStarValue = n;
+  renderStars();
+}
+function renderStars() {
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    btn.classList.toggle('lit', i < editStarValue);
+  });
+}
+
+function previewFromUrl() {
+  const url = document.getElementById('edit-image-url').value.trim();
+  const preview = document.getElementById('img-preview');
+  if (url) {
+    preview.src = url;
+    preview.classList.add('visible');
+  } else {
+    preview.classList.remove('visible');
+  }
+}
+
+function handleImageUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target.result;
+    document.getElementById('edit-image-url').value = dataUrl;
+    const preview = document.getElementById('img-preview');
+    preview.src = dataUrl;
+    preview.classList.add('visible');
+  };
+  reader.readAsDataURL(file);
+}
+
+// Close modal on overlay click
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── LOADING ──
+function showLoading(show) {
+  const el = document.getElementById('headlines-list');
+  if (show && !fetchedHeadlines.length) {
+    el.innerHTML = `<div class="loading-state"><div class="spinner"></div><div>מושך כותרות...</div></div>`;
+  }
+}
+
+// ── TOAST ──
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

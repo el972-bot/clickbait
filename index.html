@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>לוח הפיתיון</title>
+  <link href="https://fonts.googleapis.com/css2?family=Secular+One&family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0F0F0F;
+      --card: #1A1A1A;
+      --border: #2A2A2A;
+      --border-hover: #3A3A3A;
+      --text: #F0EDE8;
+      --text-muted: #888;
+      --text-dim: #555;
+      --accent: #F5A623;
+      --red: #E84040;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rubik', sans-serif;
+      min-height: 100vh;
+      direction: rtl;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── HEADER ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      background: rgba(15,15,15,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 0;
+    }
+    .masthead { display: flex; flex-direction: column; align-items: flex-end; }
+    .site-title {
+      font-family: 'Secular One', sans-serif;
+      font-weight: 400;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .site-title span { color: var(--accent); }
+    .site-tagline {
+      font-size: 0.72rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+    .header-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--red);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+    .header-date { font-size: 0.7rem; color: var(--text-dim); font-weight: 300; }
+
+    /* ── MAIN ── */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 2rem 4rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+    .section-label span {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .section-label::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    /* ── GRID ── */
+    .grid { columns: 4; column-gap: 1rem; }
+    @media (max-width: 1100px) { .grid { columns: 3; } }
+    @media (max-width: 720px)  { .grid { columns: 2; } }
+    @media (max-width: 480px)  { .grid { columns: 1; } }
+
+    /* ── CARD ── */
+    .card {
+      break-inside: avoid;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--border);
+      border-radius: 3px;
+      background: var(--card);
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: fadeUp 0.5s ease both;
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card.cat-פחד       { border-top-color: #E84040; }
+    .card.cat-פחד:hover { box-shadow: 0 8px 28px rgba(232,64,64,0.25), 0 0 0 1px rgba(232,64,64,0.3); }
+    .card.cat-סקס       { border-top-color: #8B2FC9; border-color: rgba(139,47,201,0.35); }
+    .card.cat-סקס:hover { box-shadow: 0 8px 28px rgba(139,47,201,0.25), 0 0 0 1px rgba(139,47,201,0.4); }
+    .card.cat-סנסציוני  { border-top-color: #FFD700; border-color: rgba(255,215,0,0.25); }
+    .card.cat-סנסציוני:hover { box-shadow: 0 8px 28px rgba(255,215,0,0.15), 0 0 0 1px rgba(255,215,0,0.3); }
+    .card.cat-כעס { border-top-color: #FF6B00; border-color: rgba(255,107,0,0.3); }
+    .card.cat-כעס:hover { box-shadow: 0 8px 28px rgba(255,107,0,0.2), 0 0 0 1px rgba(255,107,0,0.35); }
+
+    .card:nth-child(1) { animation-delay: 0.05s; }
+    .card:nth-child(2) { animation-delay: 0.1s; }
+    .card:nth-child(3) { animation-delay: 0.15s; }
+    .card:nth-child(4) { animation-delay: 0.2s; }
+    .card:nth-child(5) { animation-delay: 0.25s; }
+    .card:nth-child(6) { animation-delay: 0.3s; }
+    .card:nth-child(n+7) { animation-delay: 0.35s; }
+
+    .card-body { padding: 0.65rem 0.75rem 0.6rem; }
+
+    .card-source-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.35rem;
+    }
+    .card-source {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .card-category {
+      font-size: 0.55rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      border: 1px solid var(--border-hover);
+      padding: 1px 5px;
+      border-radius: 2px;
+    }
+    .card-headline {
+      font-family: 'Secular One', sans-serif;
+      font-weight: 400;
+      font-size: 0.88rem;
+      line-height: 1.4;
+      color: var(--text);
+      margin-bottom: 0.55rem;
+    }
+    .card.featured .card-headline { font-size: 1.05rem; }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── THUMBS DOWN ── */
+    .downvote-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 9px 3px 7px;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-family: 'Rubik', sans-serif;
+      font-weight: 500;
+      transition: border-color 0.18s, color 0.18s, background 0.18s;
+      line-height: 1;
+      position: relative;
+      z-index: 2; /* sit above the <a> card so clicks register */
+    }
+    .downvote-btn:hover {
+      border-color: var(--red);
+      color: var(--red);
+      background: rgba(232,64,64,0.08);
+    }
+    .downvote-btn.voted {
+      border-color: rgba(232,64,64,0.5);
+      color: var(--red);
+      background: rgba(232,64,64,0.1);
+    }
+    .thumb-icon {
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+    .downvote-btn.voted .thumb-icon {
+      animation: thumbBounce 0.35s ease;
+    }
+    @keyframes thumbBounce {
+      0%   { transform: scale(1)   translateY(0); }
+      40%  { transform: scale(1.4) translateY(3px); }
+      70%  { transform: scale(0.9) translateY(-1px); }
+      100% { transform: scale(1)   translateY(0); }
+    }
+    .vote-count {
+      font-size: 0.68rem;
+      font-weight: 600;
+      min-width: 8px;
+      text-align: center;
+    }
+
+    .card-link {
+      font-size: 0.6rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      transition: color 0.2s;
+      text-decoration: none;
+    }
+    .card:hover .card-link { color: var(--accent); }
+    .arrow { transition: transform 0.2s; display: inline-block; }
+    .card:hover .arrow { transform: translateX(-3px); }
+
+    /* ── EMPTY ── */
+    .empty-public {
+      text-align: center;
+      padding: 6rem 2rem;
+      color: var(--text-dim);
+    }
+    .empty-public .big { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-public p { font-size: 0.9rem; line-height: 1.7; }
+    .empty-public a { color: var(--accent); text-decoration: none; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      text-align: center;
+    }
+    .footer-text { font-size: 0.68rem; color: var(--text-dim); letter-spacing: 0.05em; }
+    .footer-text a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-meta">
+      <div class="live-badge"><div class="live-dot"></div>מתעדכן</div>
+      <div class="header-date" id="today-date"></div>
+    </div>
+    <div class="masthead">
+      <div class="site-title">לוח ה<span>פיתיון</span></div>
+      <div class="site-tagline">הכותרות הכי מביכות של היום, במקום אחד</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="section-label"><span>כותרות היום</span></div>
+  <div class="grid" id="cards-grid"></div>
+</main>
+
+<footer>
+  <div class="footer-text">
+    © לוח הפיתיון 2025 — אנחנו לא אחראים לדופמין שנשפך &nbsp;|&nbsp;
+    <a href="admin.html">ניהול</a>
+  </div>
+</footer>
+
+<script>
+  // ── DATE ──
+  const d = new Date();
+  document.getElementById('today-date').textContent =
+    d.toLocaleDateString('he-IL', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  // ── VOTES ──
+  // votes: { [id]: number }  — persisted vote counts
+  // voted: { [id]: true }    — which IDs this browser already voted on
+  const votes = JSON.parse(localStorage.getItem('pb_votes') || '{}');
+  const voted = JSON.parse(localStorage.getItem('pb_voted') || '{}');
+
+  function downvote(e, id) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (voted[id]) return; // one vote per browser
+    votes[id] = (votes[id] || 0) + 1;
+    voted[id] = true;
+    localStorage.setItem('pb_votes', JSON.stringify(votes));
+    localStorage.setItem('pb_voted', JSON.stringify(voted));
+
+    const btn = e.currentTarget;
+    btn.classList.add('voted');
+    const countEl = btn.querySelector('.vote-count');
+    countEl.textContent = votes[id];
+    // re-trigger thumb animation by cloning the icon node
+    const icon = btn.querySelector('.thumb-icon');
+    icon.style.animation = 'none';
+    icon.offsetHeight; // reflow
+    icon.style.animation = '';
+  }
+
+  // ── RENDER ──
+  const published = JSON.parse(localStorage.getItem('pb_published') || '[]');
+  const grid = document.getElementById('cards-grid');
+
+  if (!published.length) {
+    grid.innerHTML = `
+      <div class="empty-public" style="grid-column:1/-1">
+        <div class="big">📭</div>
+        <p>עדיין אין כותרות מפורסמות.<br/>
+        <a href="admin.html">עבור לדף הניהול</a> כדי למשוך כותרות ולפרסם אותן.</p>
+      </div>`;
+  } else {
+    grid.innerHTML = published.map((p, i) => {
+      const featured = i === 0 ? 'featured' : '';
+      const catClass = p.category ? 'cat-' + p.category.replace(/\s+/g, '-') : '';
+      const voteCount = votes[p.id] || 0;
+      const hasVoted = !!voted[p.id];
+
+      return `
+        <a class="card ${featured} ${catClass}" href="${p.link || '#'}" target="_blank" rel="noopener">
+          <div class="card-body">
+            <div class="card-source-row">
+              <div class="card-source">${p.source || ''}</div>
+              ${p.category ? `<div class="card-category">${p.category}</div>` : ''}
+            </div>
+            <div class="card-headline">${p.title}</div>
+            <div class="card-footer">
+              <button class="downvote-btn ${hasVoted ? 'voted' : ''}" data-id="${p.id}">
+                <span class="thumb-icon">👎</span>
+                <span class="vote-count">${voteCount > 0 ? voteCount : ''}</span>
+              </button>
+              <span class="card-link">קרא עוד <span class="arrow">←</span></span>
+            </div>
+          </div>
+        </a>`;
+    }).join('');
+
+    grid.querySelectorAll('.downvote-btn').forEach(btn => {
+      btn.addEventListener('click', e => downvote(e, btn.dataset.id));
+    });
+  }
+</script>
+</body>
+</html>
